@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Card from '$lib/ui/Card.svelte';
-	import { _ } from '$lib/i18n';
+	import { _, locale } from '$lib/i18n';
 	import IconMdiPencil from '@iconify-svelte/mdi/pencil';
 	import IconMdiAlertCircle from '@iconify-svelte/mdi/alert-circle';
 	import IconMdiCheck from '@iconify-svelte/mdi/check';
@@ -46,22 +46,25 @@
 			return $_('product.datasources.unknown');
 		}
 
-		// TODO: on NodeJS 23, we can use Intl.DurationFormat
+		// Use the current locale or fallback to navigator language
+		const currentLocale = $locale || navigator.language || 'en-GB';
+		const rtf = new Intl.RelativeTimeFormat(currentLocale, { numeric: 'always' });
+
 		const seconds = Math.floor(Date.now() / 1000) - unix;
 
-		const intervals: { [key: string]: number } = {
-			year: 31536000,
-			month: 2592000,
-			day: 86400,
-			hour: 3600,
-			minute: 60,
-			second: 1
-		};
+		const intervals: { unit: Intl.RelativeTimeFormatUnit; amount: number }[] = [
+			{ unit: 'year', amount: 31536000 },
+			{ unit: 'month', amount: 2592000 },
+			{ unit: 'day', amount: 86400 },
+			{ unit: 'hour', amount: 3600 },
+			{ unit: 'minute', amount: 60 },
+			{ unit: 'second', amount: 1 }
+		];
 
-		for (const i in intervals) {
-			const interval = Math.floor(seconds / intervals[i]);
+		for (const { unit, amount } of intervals) {
+			const interval = Math.floor(seconds / amount);
 			if (interval >= 1) {
-				return interval + ' ' + i + (interval > 1 ? 's' : '') + ' ago';
+				return rtf.format(-interval, unit);
 			}
 		}
 		return $_('product.datasources.just_now');
